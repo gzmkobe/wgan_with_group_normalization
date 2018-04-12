@@ -49,8 +49,8 @@ OUTPUT_DIM = args.OUTPUT_DIM # Number of pixels in CIFAR10 (3*32*32)
 
 
 
-netG = Generator()
-netD = Discriminator()
+netG = Generator(DIM)
+netD = Discriminator(DIM)
 print(netG)
 print(netD)
 
@@ -73,7 +73,7 @@ optimizerG = optim.Adam(netG.parameters(), lr=1e-4, betas=(0.5, 0.9))
 def calc_gradient_penalty(netD, real_data, fake_data):
     # print "real_data: ", real_data.size(), fake_data.size()
     alpha = torch.rand(BATCH_SIZE, 1)
-    alpha = alpha.expand(BATCH_SIZE, real_data.nelement()/BATCH_SIZE).contiguous().view(BATCH_SIZE, 3, 32, 32)
+    alpha = alpha.expand(BATCH_SIZE, int(real_data.nelement()/BATCH_SIZE)).contiguous().view(BATCH_SIZE, 3, 32, 32)
     alpha = alpha.cuda(gpu) if use_cuda else alpha
 
     interpolates = alpha * real_data + ((1 - alpha) * fake_data)
@@ -144,6 +144,8 @@ for iteration in range(ITERS):
     for p in netD.parameters():  # reset requires_grad
         p.requires_grad = True  # they are set to False below in netG update
     for i in range(CRITIC_ITERS):
+
+        print('CRITIC_ITERS:', i)
         _data = next(gen)
         netD.zero_grad()
 
@@ -182,6 +184,8 @@ for iteration in range(ITERS):
 
         D_cost = D_fake - D_real + gradient_penalty
         Wasserstein_D = D_real - D_fake
+        print(Wasserstein_D.cpu().data.numpy())
+
         optimizerD.step()
     ############################
     # (2) Update G network
@@ -208,14 +212,14 @@ for iteration in range(ITERS):
     lib.plot.plot('./tmp/cifar10/wasserstein distance', Wasserstein_D.cpu().data.numpy())
 
     # Calculate inception score every 1K iters
-    if False and iteration % 1000 == 999:
-        inception_score = get_inception_score(netG)
-        lib.plot.plot('./tmp/cifar10/inception score', inception_score[0])
+    # if False and iteration % 1000 == 999:
+    #     inception_score = get_inception_score(netG)
+    #     lib.plot.plot('./tmp/cifar10/inception score', inception_score[0])
 
     # Calculate dev loss and generate samples every 100 iters
     if iteration % 100 == 99:
         dev_disc_costs = []
-        for images, _ in dev_gen():
+        for images in dev_gen():
             images = images.reshape(BATCH_SIZE, 3, 32, 32).transpose(0, 2, 3, 1)
             imgs = torch.stack([preprocess(item) for item in images])
 
