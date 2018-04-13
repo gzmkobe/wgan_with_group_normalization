@@ -28,7 +28,7 @@ def flush():
 		#print(vals.values())
 		#print(list(vals.values()))
 		#print(vals.values()[0][0])
-		if 'time' not in name and 'dev disc cost' not in name:
+		if 'time' not in name and 'dev disc cost' not in name and 'inception score' not in name:
 			loss = [x[0] for x in list(vals.values())]
 		else:
 			loss = list(vals.values())

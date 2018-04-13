@@ -4,7 +4,6 @@ import argparse
 
 import time
 import tflib as lib
-import inception_score
 import numpy as np
 
 import torch
@@ -132,7 +131,7 @@ def get_inception_score(G, ):
     all_samples = np.multiply(np.add(np.multiply(all_samples, 0.5), 0.5), 255).astype('int32')
     all_samples = all_samples.reshape((-1, 3, 32, 32))
 
-    return inception_score.inception_score(list(all_samples),cuda=use_cuda, batch_size = BATCH_SIZE_IS, resize = True, splits = 2)
+    return lib.inception_score.inception_score(list(all_samples),cuda=use_cuda, batch_size = BATCH_SIZE_IS, resize = True, splits = 2)
   
 
 # Dataset iterator
@@ -235,7 +234,7 @@ for iteration in range(ITERS):
     if iteration % IS_CAL_ROUND == IS_CAL_ROUND - 1:
           inception_score = get_inception_score(netG)
           print("Inception score for iteration " +str(iteration)+" is "+str(inception_score))
-          lib.plot.plot('./tmp/cifar10/inception score', inception_score[0])
+          lib.plot.plot(SAVE_PATH + 'inception score', inception_score[0])
 
 
     if iteration % IMAGE_SAVE_ROUND == IMAGE_SAVE_ROUND -1 :
