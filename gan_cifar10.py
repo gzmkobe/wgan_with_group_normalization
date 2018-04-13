@@ -17,6 +17,7 @@ import tflib.mnist
 import tflib.cifar10
 import tflib.plot
 import tflib.inception_score
+import inception_score
 
 from model.cifar10 import Discriminator, Generator
 
@@ -109,6 +110,7 @@ def generate_image(frame, netG):
 # For calculating inception score
 def get_inception_score(G, ):
     all_samples = []
+    #can set 2 in replace of 10 to test data
     for i in range(10):
         samples_100 = torch.randn(100, 128)
         if use_cuda:
@@ -118,8 +120,9 @@ def get_inception_score(G, ):
 
     all_samples = np.concatenate(all_samples, axis=0)
     all_samples = np.multiply(np.add(np.multiply(all_samples, 0.5), 0.5), 255).astype('int32')
-    all_samples = all_samples.reshape((-1, 3, 32, 32)).transpose(0, 2, 3, 1)
-    return lib.inception_score.get_inception_score(list(all_samples))
+    all_samples = all_samples.reshape((-1, 3, 32, 32))
+
+    return inception_score.inception_score(list(all_samples),cuda=use_cuda, batch_size = BATCH_SIZE,resize = True, splits = 2)
 
 # Dataset iterator
 train_gen, dev_gen = lib.cifar10.load(BATCH_SIZE, data_dir=DATA_DIR)
@@ -212,9 +215,13 @@ for iteration in range(ITERS):
     lib.plot.plot('./tmp/cifar10/wasserstein distance', Wasserstein_D.cpu().data.numpy())
 
     # Calculate inception score every 1K iters
-    # if False and iteration % 1000 == 999:
-    #     inception_score = get_inception_score(netG)
-    #     lib.plot.plot('./tmp/cifar10/inception score', inception_score[0])
+    
+    if iteration % 10 == 0:
+         inception_score = get_inception_score(netG)
+         print("Inception score for iteration " +str(iteration)+" is "+str(inception_score))
+         lib.plot.plot('./tmp/cifar10/inception score', inception_score[0])
+    
+    
 
     # Calculate dev loss and generate samples every 100 iters
     if iteration % 100 == 99:
