@@ -200,7 +200,7 @@ for iteration in range(ITERS):
 
         D_cost = D_fake - D_real + gradient_penalty
         Wasserstein_D = D_real - D_fake
-        print(Wasserstein_D.cpu().data.numpy())
+        #print(Wasserstein_D.cpu().data.numpy())
 
         optimizerD.step()
     ############################

@@ -24,7 +24,6 @@ def flush():
 	# print('>>>>>>>>>>>>>>>')
 	for name, vals in _since_last_flush.items():
 		#print('>>>>>>>>>>>>>>>')
-		print(name)
 		#print(vals.values())
 		#print(list(vals.values()))
 		#print(vals.values()[0][0])
