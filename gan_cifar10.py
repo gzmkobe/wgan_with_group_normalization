@@ -37,8 +37,8 @@ parser.add_argument('--BATCH_SIZE', type=int, default=64, help = 'Batch size')
 parser.add_argument('--CRITIC_ITERS', type=int, default=5, help = 'How many critic iterations per generator iteration')
 parser.add_argument('--ITERS', type=int, default=200000, help = 'How many generator iterations to train for')
 parser.add_argument('--OUTPUT_DIM', type = int, default = 3072, help = 'Number of pixels in CIFAR10 (3*32*32)')
-parser.add_argument('--IS_CAL_ROUND', type = int, default = 100, help = 'calculate the Inception score per IS_CAL_ROUND of epoch')
-parser.add_argument('--IMAGE_SAVE_ROUND', type = int, default = 100, help = 'save the generated images per IS_CAL_ROUND of epoch')
+parser.add_argument('--IS_CAL_ROUND', type = int, default = 1000, help = 'calculate the Inception score per IS_CAL_ROUND of epoch')
+parser.add_argument('--IMAGE_SAVE_ROUND', type = int, default = 1000, help = 'save the generated images per IS_CAL_ROUND of epoch')
 parser.add_argument('--BATCH_SIZE_IS', type = int, default = 64, help = 'BATCH_SIZE for inception score calculation')
 
 args = parser.parse_args()
@@ -59,6 +59,9 @@ if len(DATA_DIR) == 0:
 
 if os.path.exists(SAVE_PATH) == False:
     os.mkdir(SAVE_PATH)
+
+if os.path.exists(os.path.join(SAVE_PATH, 'samples/')) == False:
+    os.mkdir(os.path.join(SAVE_PATH, 'samples/'))
 
 netG = Generator(DIM)
 netD = Discriminator(DIM)
@@ -115,7 +118,7 @@ def generate_image(frame, netG):
     samples = samples.mul(0.5).add(0.5)
     samples = samples.cpu().data.numpy()
 
-    lib.save_images.save_images(samples, SAVE_PATH + 'samples_' + str(frame) +' .jpg')
+    lib.save_images.save_images(samples, SAVE_PATH + 'samples/' + str(frame) +'.jpg')
 
 # For calculating inception score
 def get_inception_score(G, ):
