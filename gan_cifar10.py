@@ -26,7 +26,7 @@ from model.cifar10 import Discriminator, Generator
 # Download CIFAR-10 (Python version) at
 # https://www.cs.toronto.edu/~kriz/cifar.html and fill in the path to the
 # extracted files here!
-SAVE_PATH = './tmp/cifar10/'
+SAVE_PATH = './tmp/cifar10_test/'
 DATA_DIR = '../data/cifar-10-batches-py/'
 
 parser = argparse.ArgumentParser(description='Hyper-parameter of WGAN for CIFAR-10')
@@ -57,6 +57,9 @@ IMAGE_SAVE_ROUND = args.IMAGE_SAVE_ROUND
 
 if len(DATA_DIR) == 0:
     raise Exception('Please specify path to data directory in gan_cifar.py!')
+
+if os.path.exists(SAVE_PATH) == False:
+    os.mkdir(SAVE_PATH)
 
 netG = Generator(DIM)
 netD = Discriminator(DIM)
