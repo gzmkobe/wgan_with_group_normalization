@@ -4,6 +4,7 @@ import argparse
 
 import time
 import tflib as lib
+import inception_score
 import numpy as np
 
 import torch
@@ -17,17 +18,16 @@ import tflib.mnist
 import tflib.cifar10
 import tflib.plot
 import tflib.inception_score
-import inception_score
 
 from model.cifar10 import Discriminator, Generator
+
 
 
 # Download CIFAR-10 (Python version) at
 # https://www.cs.toronto.edu/~kriz/cifar.html and fill in the path to the
 # extracted files here!
+SAVE_PATH = './tmp/cifar10/'
 DATA_DIR = '../data/cifar-10-batches-py/'
-if len(DATA_DIR) == 0:
-    raise Exception('Please specify path to data directory in gan_cifar.py!')
 
 parser = argparse.ArgumentParser(description='Hyper-parameter of WGAN for CIFAR-10')
 
@@ -38,6 +38,10 @@ parser.add_argument('--BATCH_SIZE', type=int, default=64, help = 'Batch size')
 parser.add_argument('--CRITIC_ITERS', type=int, default=5, help = 'How many critic iterations per generator iteration')
 parser.add_argument('--ITERS', type=int, default=200000, help = 'How many generator iterations to train for')
 parser.add_argument('--OUTPUT_DIM', type = int, default = 3072, help = 'Number of pixels in CIFAR10 (3*32*32)')
+parser.add_argument('--IS_CAL_ROUND', type = int, default = 100, help = 'calculate the Inception score per IS_CAL_ROUND of epoch')
+parser.add_argument('--IMAGE_SAVE_ROUND', type = int, default = 100, help = 'save the generated images per IS_CAL_ROUND of epoch')
+parser.add_argument('--BATCH_SIZE_IS', type = int, default = 64, help = 'BATCH_SIZE for inception score calculation')
+
 args = parser.parse_args()
 
 MODE = args.MODE # Valid options are dcgan, wgan, or wgan-gp
@@ -47,8 +51,12 @@ CRITIC_ITERS = args.CRITIC_ITERS # How many critic iterations per generator iter
 BATCH_SIZE = args.BATCH_SIZE # Batch size
 ITERS = args.ITERS # How many generator iterations to train for
 OUTPUT_DIM = args.OUTPUT_DIM # Number of pixels in CIFAR10 (3*32*32)
+IS_CAL_ROUND = args.IS_CAL_ROUND
+BATCH_SIZE_IS = args.BATCH_SIZE_IS
+IMAGE_SAVE_ROUND = args.IMAGE_SAVE_ROUND
 
-
+if len(DATA_DIR) == 0:
+    raise Exception('Please specify path to data directory in gan_cifar.py!')
 
 netG = Generator(DIM)
 netD = Discriminator(DIM)
@@ -105,12 +113,11 @@ def generate_image(frame, netG):
     samples = samples.mul(0.5).add(0.5)
     samples = samples.cpu().data.numpy()
 
-    lib.save_images.save_images(samples, './tmp/cifar10/samples_{}.jpg'.format(frame))
+    lib.save_images.save_images(samples, SAVE_PATH + 'samples_' + str(frame) +' .jpg')
 
 # For calculating inception score
 def get_inception_score(G, ):
     all_samples = []
-    #can set 2 in replace of 10 to test data
     for i in range(10):
         samples_100 = torch.randn(100, 128)
         if use_cuda:
@@ -122,7 +129,8 @@ def get_inception_score(G, ):
     all_samples = np.multiply(np.add(np.multiply(all_samples, 0.5), 0.5), 255).astype('int32')
     all_samples = all_samples.reshape((-1, 3, 32, 32))
 
-    return inception_score.inception_score(list(all_samples),cuda=use_cuda, batch_size = BATCH_SIZE,resize = True, splits = 2)
+    return inception_score.inception_score(list(all_samples),cuda=use_cuda, batch_size = BATCH_SIZE_IS, resize = True, splits = 2)
+  
 
 # Dataset iterator
 train_gen, dev_gen = lib.cifar10.load(BATCH_SIZE, data_dir=DATA_DIR)
@@ -148,7 +156,7 @@ for iteration in range(ITERS):
         p.requires_grad = True  # they are set to False below in netG update
     for i in range(CRITIC_ITERS):
 
-        print('CRITIC_ITERS:', i)
+        #print('CRITIC_ITERS:', i)
         _data = next(gen)
         netD.zero_grad()
 
@@ -209,22 +217,25 @@ for iteration in range(ITERS):
     optimizerG.step()
 
     # Write logs and save samples
-    lib.plot.plot('./tmp/cifar10/train disc cost', D_cost.cpu().data.numpy())
-    lib.plot.plot('./tmp/cifar10/time', time.time() - start_time)
-    lib.plot.plot('./tmp/cifar10/train gen cost', G_cost.cpu().data.numpy())
-    lib.plot.plot('./tmp/cifar10/wasserstein distance', Wasserstein_D.cpu().data.numpy())
+    lib.plot.plot(SAVE_PATH + 'train disc cost', D_cost.cpu().data.numpy())
+    lib.plot.plot(SAVE_PATH + 'time', time.time() - start_time)
+    lib.plot.plot(SAVE_PATH + 'train gen cost', G_cost.cpu().data.numpy())
+    lib.plot.plot(SAVE_PATH + 'wasserstein distance', Wasserstein_D.cpu().data.numpy())
 
     # Calculate inception score every 1K iters
-    
-    if iteration % 10 == 0:
-         inception_score = get_inception_score(netG)
-         print("Inception score for iteration " +str(iteration)+" is "+str(inception_score))
-         lib.plot.plot('./tmp/cifar10/inception score', inception_score[0])
-    
-    
+    # if False and iteration % 1000 == 999:
+    #     inception_score = get_inception_score(netG)
+    #     lib.plot.plot('./tmp/cifar10/inception score', inception_score[0])
 
     # Calculate dev loss and generate samples every 100 iters
-    if iteration % 100 == 99:
+
+    if iteration % IS_CAL_ROUND == IS_CAL_ROUND - 1:
+          inception_score = get_inception_score(netG)
+          print("Inception score for iteration " +str(iteration)+" is "+str(inception_score))
+          lib.plot.plot('./tmp/cifar10/inception score', inception_score[0])
+
+
+    if iteration % IMAGE_SAVE_ROUND == IMAGE_SAVE_ROUND -1 :
         dev_disc_costs = []
         for images in dev_gen():
             images = images.reshape(BATCH_SIZE, 3, 32, 32).transpose(0, 2, 3, 1)
@@ -238,7 +249,7 @@ for iteration in range(ITERS):
             D = netD(imgs_v)
             _dev_disc_cost = -D.mean().cpu().data.numpy()
             dev_disc_costs.append(_dev_disc_cost)
-        lib.plot.plot('./tmp/cifar10/dev disc cost', np.mean(dev_disc_costs))
+        lib.plot.plot(SAVE_PATH + 'dev disc cost', np.mean(dev_disc_costs))
 
         generate_image(iteration, netG)
 

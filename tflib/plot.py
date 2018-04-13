@@ -20,15 +20,15 @@ def plot(name, value):
 
 def flush():
 	prints = []
-	#print(_since_last_flush)
-	#print('>>>>>>>>>>>>>>>')
+	# print(_since_last_flush)
+	# print('>>>>>>>>>>>>>>>')
 	for name, vals in _since_last_flush.items():
 		#print('>>>>>>>>>>>>>>>')
-		#print(name)
+		print(name)
 		#print(vals.values())
 		#print(list(vals.values()))
 		#print(vals.values()[0][0])
-		if 'time' not in name:
+		if 'time' not in name and 'dev disc cost' not in name:
 			loss = [x[0] for x in list(vals.values())]
 		else:
 			loss = list(vals.values())
