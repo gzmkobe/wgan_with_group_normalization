@@ -22,4 +22,4 @@ module load tensorflow/python3.6/1.3.0
 module load scipy/intel/0.19.1
 
 cd /home/nw1045/wgan-deeplearning/wgan-gp
-python gan_cifar10.py 
+python gan_cifar10.py --NORMALIZATION groupnorm

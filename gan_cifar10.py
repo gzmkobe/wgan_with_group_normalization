@@ -18,14 +18,14 @@ import tflib.cifar10
 import tflib.plot
 import tflib.inception_score
 
-from model.cifar10 import Discriminator, Generator
+from model.cifar10 import Discriminator, Generator, Discriminator_with_group_norm
 
 
 
 # Download CIFAR-10 (Python version) at
 # https://www.cs.toronto.edu/~kriz/cifar.html and fill in the path to the
 # extracted files here!
-SAVE_PATH = './tmp/cifar10_test/'
+SAVE_PATH = './tmp/cifar10_groupnorm/'
 DATA_DIR = '../data/cifar-10-batches-py/'
 
 parser = argparse.ArgumentParser(description='Hyper-parameter of WGAN for CIFAR-10')
@@ -40,6 +40,8 @@ parser.add_argument('--OUTPUT_DIM', type = int, default = 3072, help = 'Number o
 parser.add_argument('--IS_CAL_ROUND', type = int, default = 1000, help = 'calculate the Inception score per IS_CAL_ROUND of epoch')
 parser.add_argument('--IMAGE_SAVE_ROUND', type = int, default = 1000, help = 'save the generated images per IS_CAL_ROUND of epoch')
 parser.add_argument('--BATCH_SIZE_IS', type = int, default = 64, help = 'BATCH_SIZE for inception score calculation')
+parser.add_argument('--GROUP_NUM', type = int, default = 16, help = 'Number of groups in group Normalization')
+parser.add_argument('--NORMALIZATION', type = str, default = 'none',  choices = ['layernorm', 'none', 'groupnorm'],help = 'Type of Normalization')
 
 args = parser.parse_args()
 
@@ -53,6 +55,8 @@ OUTPUT_DIM = args.OUTPUT_DIM # Number of pixels in CIFAR10 (3*32*32)
 IS_CAL_ROUND = args.IS_CAL_ROUND
 BATCH_SIZE_IS = args.BATCH_SIZE_IS
 IMAGE_SAVE_ROUND = args.IMAGE_SAVE_ROUND
+GROUP_NUM = args.GROUP_NUM
+NORMALIZATION = args.NORMALIZATION
 
 if len(DATA_DIR) == 0:
     raise Exception('Please specify path to data directory in gan_cifar.py!')
@@ -64,7 +68,11 @@ if os.path.exists(os.path.join(SAVE_PATH, 'samples/')) == False:
     os.mkdir(os.path.join(SAVE_PATH, 'samples/'))
 
 netG = Generator(DIM)
-netD = Discriminator(DIM)
+if NORMALIZATION == 'groupnorm':
+    netD = Discriminator_with_group_norm(DIM, GROUP_NUM)
+elif NORMALIZATION == 'none':
+    netD = Discriminator(DIM)
+
 print(netG)
 print(netD)
 
