@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 class GroupBatchnorm2d(nn.Module):
     def __init__(self, c_num, group_num = 16, eps = 1e-10):
@@ -105,3 +106,140 @@ class Discriminator(nn.Module):
         output = output.view(-1, 4*4*4*self.DIM)
         output = self.linear(output)
         return output
+
+def ConvMeanPool(input_dim, output_dim, filter_size):
+    return nn.Sequential(nn.Conv2d(input_dim,output_dim,filter_size),nn.AvgPool1d(filter_size=2, stride=2))
+
+def MeanPoolConv(input_dim, output_dim, filter_size):
+    return nn.Sequential(nn.AvgPool1d(filter_size=2, stride=2),nn.Conv2d(input_dim,output_dim,filter_size))
+
+def UpSampleConv(input_dim, output_dim, filter_size):
+    return(nn.Sequential(nn.Upsample(scale_factor=2, mode='nearest'),nn.Conv2d(input_dim,output_dim,filter_size,padding=1)))
+
+class ResidualBlock(object):
+    """docstring for ResidualBlock
+    """
+
+    def __init__(self, input_dim, output_dim, filter_size, resample=None, no_dropout=False, labels=None):
+        super(ResidualBlock, self).__init__()
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+        self.filter_size = filter_size
+        self.inputs = inputs
+        self.resample = resample
+
+        self.bn1 = nn.BatchNorm2d(self.input_dim)
+        self.bn2 = nn.BatchNorm2d(self.output_dim)
+        self.conv2d_in_in = nn.Conv2d(self.input_dim,self.input_dim,self.filter_size,padding=1)
+        self.conv2d_down = nn.Conv2d(self.input_dim,self.output_dim,filter_size=1,biases=True,padding=1)
+        self.conv2d_in_out = nn.Conv2d(self.input_dim,self.output_dim,self.filter_size,padding=1)
+        self.conv2d_out_out = nn.Conv2d(self.output_dim,self.output_dim,self.filter_size,padding=1)
+
+        if(resample == None):
+            self.conv_1 = self.conv2d_in_out
+            self.conv_2 = self.conv2d_out_out
+            self.conv_shortcut = self.conv2d_down 
+        elif(resample == 'up'):
+            self.conv_1 = UpsampleConv(self.input_dim,self.output_dim,self.filter_size)
+            self.conv_2 = self.conv2d_out_out
+            self.conv_shortcut = UpsampleConv(self.input_dim,self.output_dim,1)
+        elif(resample == 'down'):
+            self.conv_1 = self.conv2d_in_in
+            self.conv_2 = ConvMeanPool(self.input_dim,self.input_dim,self.filter_size)
+            self.conv_shortcut = ConvMeanPool(self.input_dim,self.output_dim,1)
+
+    def forward(self,inputs):
+        if(resample = None) and (output_dim==input_dim):
+            shortcut = inputs
+        else:
+            shortcut = self.conv_shortcut(inputs)
+        output = inputs
+        output = self.bn1(output)
+        output = F.ReLU(output)
+        output = self.conv_1(output)
+        output = self.bn2(output)
+        output = F.ReLU(output)
+        output = self.conv_2(output)
+
+        return output + shortcut
+
+class OptimizedReslock(object):
+    """docstring for OptimizedReslock"""
+    def __init__(self, DIM):
+        super(OptimizedReslock, self).__init__()
+        self.DIM = DIM
+        self.conv_1 = nn.Conv2d(3,self.DIM,3,padding=1)
+        self.conv_2 = ConvMeanPool(self.DIM,self.DIM,3,padding=1)
+        self.conv_shortcut = MeanPoolConv(3,self.DIM,1)
+    def forward(self,inputs):
+        shortcut = self.conv_shortcut(inputs)
+
+        output = self.conv_1(output)
+        output = F.ReLU(output)
+        output = self.conv_2(output)
+        return shortcut+output
+        
+
+#ResNet Discriminator & Generator from Improved WGAN/ GP-WGAN
+class Discriminator_with_ResNet(object):
+    """docstring for Discriminator_with_ResNet
+
+    """
+    def __init__(self, DIM, noise = None):
+        super(Discriminator_with_ResNet, self).__init__()
+        self.DIM = DIM
+        self.linear = nn.linear(128,self.DIM * 4 * 4)
+        self.noise = noise
+
+        self.ResidualBlock_Disc = nn.Sequential(ResidualBlock(self.DIM,self.DIM,3,resample ='down'),
+                                            ResidualBlock(self.DIM,self.DIM,3,resample = None),
+                                            ResidualBlock(self.DIM,self.DIM,3,resample = None))
+
+        self.OptimizedReslock = OptimizedReslock(self.DIM)
+        self.MeanPooling = nn.AvgPool1d(filter_size=2, stride=2)
+        self.linear = nn.Linear(self.DIM,1)
+    def forward(self,inputs):
+        output = inputs.reshape([-1,3,32,32])
+        output = self.OptimizedReslock(output)
+        output = self.ResidualBlock_Disc(output)
+        output = F.ReLU(output)
+        output = self.MeanPooling(output)
+        output = nn.Linear(output)
+        return output
+
+class Generator_with_ResNet(object):
+    """docstring for Generator_with_ResNet"""
+    def __init__(self, DIM):
+        super(Generator_with_ResNet, self).__init__()
+        self.DIM = DIM
+        self.ResidualBlock_1 = ResidualBlock(self.DIM,self.DIM,3,resample= 'up')
+        self.ResidualBlock_2 = ResidualBlock(self.DIM,self.DIM,3,resample= 'up')
+        self.ResidualBlock_3 = ResidualBlock(self.DIM,self.DIM,3,resample= 'up')
+        self.bn = nn.BatchNorm2d(self.DIM)
+        self.conv2d = nn.Conv2d(self.DIM,3,3)
+    def forward(self,input):
+        """
+        output = lib.ops.linear.Linear('Generator.Input', 128, 4*4*DIM_G, noise)
+        output = tf.reshape(output, [-1, DIM_G, 4, 4])
+        output = ResidualBlock('Generator.1', DIM_G, DIM_G, 3, output, resample='up', labels=labels)
+        output = ResidualBlock('Generator.2', DIM_G, DIM_G, 3, output, resample='up', labels=labels)
+        output = ResidualBlock('Generator.3', DIM_G, DIM_G, 3, output, resample='up', labels=labels)
+        output = Normalize('Generator.OutputN', output)
+        output = nonlinearity(output)
+        output = lib.ops.conv2d.Conv2D('Generator.Output', DIM_G, 3, 3, output, he_init=False)
+        output = tf.tanh(output)
+        return tf.reshape(output, [-1, OUTPUT_DIM])
+        """
+        if(self.noise == None):
+            noise = torch.normal(mean=0, std=torch.ones(128))
+        output = self.linear(noise)
+        output = output.view([-1,self.DIM,4,4])
+        output = self.ResidualBlock_1(output)
+        output = self.ResidualBlock_2(output)
+        output = self.ResidualBlock_3(output)
+        output = self.bn(output)
+        output = F.ReLU(output)
+        output = self.conv2d(output)
+        output = nn.Tanh(output)
+        return output.reshape([-1,3*32*32])
+        

@@ -18,7 +18,7 @@ import tflib.cifar10
 import tflib.plot
 import tflib.inception_score
 
-from model.cifar10 import Discriminator, Generator, Discriminator_with_group_norm
+from model.cifar10 import Discriminator, Generator, Discriminator_with_group_norm, Discriminator_with_ResNet, Generator_with_ResNet
 
 
 
@@ -41,6 +41,7 @@ parser.add_argument('--IS_CAL_ROUND', type = int, default = 1000, help = 'calcul
 parser.add_argument('--IMAGE_SAVE_ROUND', type = int, default = 1000, help = 'save the generated images per IS_CAL_ROUND of epoch')
 parser.add_argument('--BATCH_SIZE_IS', type = int, default = 64, help = 'BATCH_SIZE for inception score calculation')
 parser.add_argument('--GROUP_NUM', type = int, default = 16, help = 'Number of groups in group Normalization')
+parser.add_argument('--RESNET',type = bool, default = False, help = 'Whether use ResNet Discriminator and Generator')
 parser.add_argument('--NORMALIZATION', type = str, default = 'none',  choices = ['layernorm', 'none', 'groupnorm'],help = 'Type of Normalization')
 
 args = parser.parse_args()
@@ -67,8 +68,14 @@ if os.path.exists(SAVE_PATH) == False:
 if os.path.exists(os.path.join(SAVE_PATH, 'samples/')) == False:
     os.mkdir(os.path.join(SAVE_PATH, 'samples/'))
 
-netG = Generator(DIM)
-if NORMALIZATION == 'groupnorm':
+if(RESNET == True):
+    netG = Generator_with_ResNet(128)
+else:
+    netG = Generator(DIM)
+
+if(RESNET == True):
+    netD = Discriminator_with_ResNet(128)
+elif NORMALIZATION == 'groupnorm':
     netD = Discriminator_with_group_norm(DIM, GROUP_NUM)
 elif NORMALIZATION == 'none':
     netD = Discriminator(DIM)
