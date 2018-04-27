@@ -108,15 +108,15 @@ class Discriminator(nn.Module):
         return output
 
 def ConvMeanPool(input_dim, output_dim, filter_size):
-    return nn.Sequential(nn.Conv2d(input_dim,output_dim,filter_size),nn.AvgPool1d(filter_size=2, stride=2))
+    return nn.Sequential(nn.Conv2d(input_dim,output_dim,filter_size),nn.AvgPool1d(2, stride=2))
 
 def MeanPoolConv(input_dim, output_dim, filter_size):
-    return nn.Sequential(nn.AvgPool1d(filter_size=2, stride=2),nn.Conv2d(input_dim,output_dim,filter_size))
+    return nn.Sequential(nn.AvgPool1d(2, stride=2),nn.Conv2d(input_dim,output_dim,filter_size))
 
 def UpSampleConv(input_dim, output_dim, filter_size):
     return(nn.Sequential(nn.Upsample(scale_factor=2, mode='nearest'),nn.Conv2d(input_dim,output_dim,filter_size,padding=1)))
 
-class ResidualBlock(object):
+class ResidualBlock(nn.Module):
     """docstring for ResidualBlock
     """
 
@@ -125,13 +125,12 @@ class ResidualBlock(object):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.filter_size = filter_size
-        self.inputs = inputs
         self.resample = resample
 
         self.bn1 = nn.BatchNorm2d(self.input_dim)
         self.bn2 = nn.BatchNorm2d(self.output_dim)
         self.conv2d_in_in = nn.Conv2d(self.input_dim,self.input_dim,self.filter_size,padding=1)
-        self.conv2d_down = nn.Conv2d(self.input_dim,self.output_dim,filter_size=1,biases=True,padding=1)
+        self.conv2d_down = nn.Conv2d(self.input_dim,self.output_dim,1,padding=1)
         self.conv2d_in_out = nn.Conv2d(self.input_dim,self.output_dim,self.filter_size,padding=1)
         self.conv2d_out_out = nn.Conv2d(self.output_dim,self.output_dim,self.filter_size,padding=1)
 
@@ -140,16 +139,16 @@ class ResidualBlock(object):
             self.conv_2 = self.conv2d_out_out
             self.conv_shortcut = self.conv2d_down 
         elif(resample == 'up'):
-            self.conv_1 = UpsampleConv(self.input_dim,self.output_dim,self.filter_size)
+            self.conv_1 = UpSampleConv(self.input_dim,self.output_dim,self.filter_size)
             self.conv_2 = self.conv2d_out_out
-            self.conv_shortcut = UpsampleConv(self.input_dim,self.output_dim,1)
+            self.conv_shortcut = UpSampleConv(self.input_dim,self.output_dim,1)
         elif(resample == 'down'):
             self.conv_1 = self.conv2d_in_in
             self.conv_2 = ConvMeanPool(self.input_dim,self.input_dim,self.filter_size)
             self.conv_shortcut = ConvMeanPool(self.input_dim,self.output_dim,1)
 
     def forward(self,inputs):
-        if(resample = None) and (output_dim==input_dim):
+        if(resample == None) and (output_dim==input_dim):
             shortcut = inputs
         else:
             shortcut = self.conv_shortcut(inputs)
@@ -163,13 +162,13 @@ class ResidualBlock(object):
 
         return output + shortcut
 
-class OptimizedReslock(object):
+class OptimizedReslock(nn.Module):
     """docstring for OptimizedReslock"""
     def __init__(self, DIM):
         super(OptimizedReslock, self).__init__()
         self.DIM = DIM
         self.conv_1 = nn.Conv2d(3,self.DIM,3,padding=1)
-        self.conv_2 = ConvMeanPool(self.DIM,self.DIM,3,padding=1)
+        self.conv_2 = ConvMeanPool(self.DIM,self.DIM,3)
         self.conv_shortcut = MeanPoolConv(3,self.DIM,1)
     def forward(self,inputs):
         shortcut = self.conv_shortcut(inputs)
@@ -181,14 +180,14 @@ class OptimizedReslock(object):
         
 
 #ResNet Discriminator & Generator from Improved WGAN/ GP-WGAN
-class Discriminator_with_ResNet(object):
+class Discriminator_with_ResNet(nn.Module):
     """docstring for Discriminator_with_ResNet
 
     """
     def __init__(self, DIM, noise = None):
         super(Discriminator_with_ResNet, self).__init__()
         self.DIM = DIM
-        self.linear = nn.linear(128,self.DIM * 4 * 4)
+        self.linear = nn.Linear(128,self.DIM * 4 * 4)
         self.noise = noise
 
         self.ResidualBlock_Disc = nn.Sequential(ResidualBlock(self.DIM,self.DIM,3,resample ='down'),
@@ -196,7 +195,7 @@ class Discriminator_with_ResNet(object):
                                             ResidualBlock(self.DIM,self.DIM,3,resample = None))
 
         self.OptimizedReslock = OptimizedReslock(self.DIM)
-        self.MeanPooling = nn.AvgPool1d(filter_size=2, stride=2)
+        self.MeanPooling = nn.AvgPool1d(2, stride=2)
         self.linear = nn.Linear(self.DIM,1)
     def forward(self,inputs):
         output = inputs.reshape([-1,3,32,32])
@@ -207,7 +206,7 @@ class Discriminator_with_ResNet(object):
         output = nn.Linear(output)
         return output
 
-class Generator_with_ResNet(object):
+class Generator_with_ResNet(nn.Module):
     """docstring for Generator_with_ResNet"""
     def __init__(self, DIM):
         super(Generator_with_ResNet, self).__init__()

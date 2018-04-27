@@ -58,6 +58,7 @@ BATCH_SIZE_IS = args.BATCH_SIZE_IS
 IMAGE_SAVE_ROUND = args.IMAGE_SAVE_ROUND
 GROUP_NUM = args.GROUP_NUM
 NORMALIZATION = args.NORMALIZATION
+RESNET = args.RESNET
 
 if len(DATA_DIR) == 0:
     raise Exception('Please specify path to data directory in gan_cifar.py!')
