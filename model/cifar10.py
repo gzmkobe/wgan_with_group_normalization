@@ -159,7 +159,7 @@ class ResidualBlock(nn.Module):
         self.resample = resample
         if(resample == 'up'):
             self.bn1 = GroupBatchnorm2d(self.input_dim, 1)
-            self.bn2 = GroupBatchnorm2d(self.input_dim, 1)
+            self.bn2 = GroupBatchnorm2d(self.output_dim, 1)
         else:
             self.bn1 = nn.BatchNorm2d(self.input_dim)
             self.bn2 = nn.BatchNorm2d(self.output_dim)
