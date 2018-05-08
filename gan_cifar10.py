@@ -25,7 +25,7 @@ from model.cifar10 import Discriminator, Generator, Discriminator_with_group_nor
 # Download CIFAR-10 (Python version) at
 # https://www.cs.toronto.edu/~kriz/cifar.html and fill in the path to the
 # extracted files here!
-SAVE_PATH = './tmp/cifar10_groupnorm/'
+SAVE_PATH = './tmp/cifar10_restnet/'
 DATA_DIR = '../data/cifar-10-batches-py/'
 
 parser = argparse.ArgumentParser(description='Hyper-parameter of WGAN for CIFAR-10')

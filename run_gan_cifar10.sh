@@ -1,12 +1,12 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=10:59:00
+#SBATCH --time=5:59:00
 #SBATCH --mem=8GB
 #SBATCH --gres=gpu:1
-#SBATCH --job-name=cifar_10_try
-#SBATCH --mail-user=nw1045@nyu.edu
-#SBATCH --output=/home/nw1045/wgan-deeplearning/wgan-gp/outputs_log/slurm_%j.out
+#SBATCH --job-name=cifar_10_resnet
+#SBATCH --mail-user=qc510@nyu.edu
+#SBATCH --output=/home/qc510/ds1008_project/wgan_with_group_normalization/outputs_log/slurm_%j.out
 
 module purge
 module load h5py/intel/2.7.0rc2
@@ -21,5 +21,5 @@ module load numpy/python3.6/intel/1.14.0
 module load tensorflow/python3.6/1.3.0
 module load scipy/intel/0.19.1
 
-cd /home/nw1045/wgan-deeplearning/wgan-gp
-python gan_cifar10.py --NORMALIZATION groupnorm
+cd /home/qc510/ds1008_project/wgan_with_group_normalization
+python gan_cifar10.py --NORMALIZATION groupnorm --RESNET True
