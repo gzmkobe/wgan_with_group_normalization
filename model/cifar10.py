@@ -68,12 +68,14 @@ class Discriminator_with_group_norm(nn.Module):
         self.DIM = DIM
         main = nn.Sequential(
             nn.Conv2d(3, self.DIM, 3, 2, padding=1),
+            GroupBatchnorm2d(self.DIM, group_num),
             nn.LeakyReLU(),
             nn.Conv2d(self.DIM, 2 * self.DIM, 3, 2, padding=1),
+            GroupBatchnorm2d(2 * self.DIM, group_num),
             nn.LeakyReLU(),
             nn.Conv2d(2 * self.DIM, 4 * self.DIM, 3, 2, padding=1),
-            nn.LeakyReLU(),
-            GroupBatchnorm2d(4 * self.DIM, group_num)
+            GroupBatchnorm2d(4 * self.DIM, group_num),
+            nn.LeakyReLU()   
         )
 
         self.main = main
@@ -84,7 +86,9 @@ class Discriminator_with_group_norm(nn.Module):
         output = output.view(-1, 4*4*4*self.DIM)
         output = self.linear(output)
         return output
-
+ 
+    
+    
 
 class Discriminator(nn.Module):
     def __init__(self, DIM):
