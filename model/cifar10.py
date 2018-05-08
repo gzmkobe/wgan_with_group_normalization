@@ -24,6 +24,8 @@ class GroupBatchnorm2d(nn.Module):
 
         return x * self.gamma + self.beta
 
+        
+
 
 class Generator(nn.Module):
     def __init__(self, DIM):
@@ -86,8 +88,32 @@ class Discriminator_with_group_norm(nn.Module):
         output = output.view(-1, 4*4*4*self.DIM)
         output = self.linear(output)
         return output
- 
+
     
+class Discriminator_with_layer_norm(nn.Module):
+    def __init__(self, DIM, group_num =1):
+        super(Discriminator_with_layer_norm, self).__init__()
+        self.DIM = DIM
+        main = nn.Sequential(
+            nn.Conv2d(3, self.DIM, 3, 2, padding=1),
+            GroupBatchnorm2d(self.DIM, group_num),
+            nn.LeakyReLU(),
+            nn.Conv2d(self.DIM, 2 * self.DIM, 3, 2, padding=1),
+            GroupBatchnorm2d(2 * self.DIM, group_num),
+            nn.LeakyReLU(),
+            nn.Conv2d(2 * self.DIM, 4 * self.DIM, 3, 2, padding=1),
+            GroupBatchnorm2d(4 * self.DIM, group_num),
+            nn.LeakyReLU()   
+        )
+
+        self.main = main
+        self.linear = nn.Linear(4*4*4*self.DIM, 1)
+
+    def forward(self, input):
+        output = self.main(input)
+        output = output.view(-1, 4*4*4*self.DIM)
+        output = self.linear(output)
+        return output       
     
 
 class Discriminator(nn.Module):

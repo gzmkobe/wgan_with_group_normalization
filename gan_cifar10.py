@@ -18,7 +18,7 @@ import tflib.cifar10
 import tflib.plot
 import tflib.inception_score
 
-from model.cifar10 import Discriminator, Generator, Discriminator_with_group_norm, Discriminator_with_ResNet, Generator_with_ResNet
+from model.cifar10 import Discriminator, Generator, Discriminator_with_group_norm, Discriminator_with_ResNet, Generator_with_ResNet, Discriminator_with_layer_norm
 
 
 
@@ -78,6 +78,8 @@ if(RESNET == True):
     netD = Discriminator_with_ResNet(128)
 elif NORMALIZATION == 'groupnorm':
     netD = Discriminator_with_group_norm(DIM, GROUP_NUM)
+elif NORMALIZATION == 'layernorm':
+    netD = Discriminator_with_layer_norm(DIM, GROUP_NUM)
 elif NORMALIZATION == 'none':
     netD = Discriminator(DIM)
 
