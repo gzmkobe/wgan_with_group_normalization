@@ -157,9 +157,12 @@ class ResidualBlock(nn.Module):
         self.output_dim = output_dim
         self.filter_size = filter_size
         self.resample = resample
-
-        self.bn1 = nn.BatchNorm2d(self.input_dim)
-        self.bn2 = nn.BatchNorm2d(self.output_dim)
+        if(resample == 'up'):
+            self.bn1 = GroupBatchnorm2d(self.input_dim, 1)
+            self.bn2 = GroupBatchnorm2d(self.input_dim, 1)
+        else:
+            self.bn1 = nn.BatchNorm2d(self.input_dim)
+            self.bn2 = nn.BatchNorm2d(self.output_dim)
         self.conv2d_in_in = nn.Conv2d(self.input_dim,self.input_dim,self.filter_size,padding=int((self.filter_size-1)/2))
         self.conv2d_down = nn.Conv2d(self.input_dim,self.output_dim,1,padding=int((self.filter_size-1)/2))
         self.conv2d_in_out = nn.Conv2d(self.input_dim,self.output_dim,self.filter_size,padding=int((self.filter_size-1)/2))
