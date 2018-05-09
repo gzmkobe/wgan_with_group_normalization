@@ -157,7 +157,7 @@ class ResidualBlock(nn.Module):
         self.output_dim = output_dim
         self.filter_size = filter_size
         self.resample = resample
-        if(resample == 'up'):
+        if(resample != 'up'):
             self.bn1 = GroupBatchnorm2d(self.input_dim, 1)
             self.bn2 = GroupBatchnorm2d(self.output_dim, 1)
         else:
@@ -251,19 +251,6 @@ class Generator_with_ResNet(nn.Module):
         self.conv2d = nn.Conv2d(self.DIM,3,3,padding=1)
         self.tanh = nn.Tanh()
     def forward(self,inputs):
-        """
-        output = lib.ops.linear.Linear('Generator.Input', 128, 4*4*DIM_G, noise)
-        output = tf.reshape(output, [-1, DIM_G, 4, 4])
-        output = ResidualBlock('Generator.1', DIM_G, DIM_G, 3, output, resample='up', labels=labels)
-        output = ResidualBlock('Generator.2', DIM_G, DIM_G, 3, output, resample='up', labels=labels)
-        output = ResidualBlock('Generator.3', DIM_G, DIM_G, 3, output, resample='up', labels=labels)
-        output = Normalize('Generator.OutputN', output)
-        output = nonlinearity(output)
-        output = lib.ops.conv2d.Conv2D('Generator.Output', DIM_G, 3, 3, output, he_init=False)
-        output = tf.tanh(output)
-        return tf.reshape(output, [-1, OUTPUT_DIM])
-        """
-        #noise = Variable(torch.normal(mean=0, std=torch.ones(64*128))).view([64,128])
         output = self.linear(inputs)
         output = output.view([-1,self.DIM,4,4])
         output = self.ResidualBlock_1(output)
