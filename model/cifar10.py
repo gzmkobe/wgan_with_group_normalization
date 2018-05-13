@@ -151,19 +151,20 @@ class ResidualBlock(nn.Module):
     """docstring for ResidualBlock
     """
 
-    def __init__(self, input_dim, output_dim, filter_size, resample=None, no_dropout=False, labels=None):
+    def __init__(self, input_dim, output_dim, filter_size, group_num = [1, 1], resample=None, no_dropout=False, labels=None):
         super(ResidualBlock, self).__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.filter_size = filter_size
         self.resample = resample
         if(resample != 'up'):
-            self.bn1 = GroupBatchnorm2d(self.input_dim, 1)
-            self.bn2 = GroupBatchnorm2d(self.output_dim, 1)
+            self.bn1 = GroupBatchnorm2d(self.input_dim, group_num[0])
+            self.bn2 = GroupBatchnorm2d(self.output_dim, group_num[1])
         else:
             self.bn1 = nn.BatchNorm2d(self.input_dim)
             self.bn2 = nn.BatchNorm2d(self.output_dim)
-        self.conv2d_in_in = nn.Conv2d(self.input_dim,self.input_dim,self.filter_size,padding=int((self.filter_size-1)/2))
+
+        self.conv2d_in_in = nn.Conv2d(self.input_dim,self.input_dim, self.filter_size,padding=int((self.filter_size-1)/2))
         self.conv2d_down = nn.Conv2d(self.input_dim,self.output_dim,1,padding=int((self.filter_size-1)/2))
         self.conv2d_in_out = nn.Conv2d(self.input_dim,self.output_dim,self.filter_size,padding=int((self.filter_size-1)/2))
         self.conv2d_out_out = nn.Conv2d(self.output_dim,self.output_dim,self.filter_size,padding=int((self.filter_size-1)/2))
@@ -201,7 +202,7 @@ class OptimizedReslock(nn.Module):
     def __init__(self, DIM):
         super(OptimizedReslock, self).__init__()
         self.DIM = DIM
-        self.conv_1 = nn.Conv2d(3,self.DIM,3,padding=1)
+        self.conv_1 = nn.Conv2d(3, self.DIM, 3,padding=1)
         self.conv_2 = ConvMeanPool(self.DIM,self.DIM,3)
         self.conv_shortcut = MeanPoolConv(3,self.DIM,1)
     def forward(self,inputs):
@@ -218,13 +219,13 @@ class Discriminator_with_ResNet(nn.Module):
     """docstring for Discriminator_with_ResNet
 
     """
-    def __init__(self, DIM):
+    def __init__(self, DIM, group_num_by_layer):
         super(Discriminator_with_ResNet, self).__init__()
         self.DIM = DIM
 
-        self.ResidualBlock_Disc = nn.Sequential(ResidualBlock(self.DIM,self.DIM,3,resample ='down'),
-                                            ResidualBlock(self.DIM,self.DIM,3,resample = None),
-                                            ResidualBlock(self.DIM,self.DIM,3,resample = None))
+        self.ResidualBlock_Disc = nn.Sequential(ResidualBlock(self.DIM, self.DIM, 3,resample ='down', group_num = group_num_by_layer[0]),
+                                            ResidualBlock(self.DIM, self.DIM, 3,resample = None,  group_num = group_num_by_layer[1]),
+                                            ResidualBlock(self.DIM, self.DIM, 3,resample = None,  group_num = group_num_by_layer[2]))
 
         self.OptimizedReslock = OptimizedReslock(self.DIM)
         self.MeanPooling = nn.AvgPool2d(8, stride=1)

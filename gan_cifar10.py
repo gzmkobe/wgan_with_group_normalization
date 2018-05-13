@@ -25,27 +25,39 @@ from model.cifar10 import Discriminator, Generator, Discriminator_with_group_nor
 # Download CIFAR-10 (Python version) at
 # https://www.cs.toronto.edu/~kriz/cifar.html and fill in the path to the
 # extracted files here!
-SAVE_PATH = './tmp/cifar10_restnet/'
+SAVE_PATH = './tmp/cifar10_resnet_group_16_16_8_8_4_4/'
 DATA_DIR = '../data/cifar-10-batches-py/'
 
 parser = argparse.ArgumentParser(description='Hyper-parameter of WGAN for CIFAR-10')
 
 parser.add_argument('--MODE', type=str, default='wgan-gp', help='Valid options are dcgan, wgan, or wgan-gp')
-parser.add_argument('--DIM', type=int, default=64, help = 'dimension of the fully-connected layer at front')
-parser.add_argument('--LAMBDA', type=int, default=10, help = 'Gradient penalty lambda hyperparameter')
+parser.add_argument('--DIM', type=int, default=128, help = 'dimension of the fully-connected layer at front')
+parser.add_argument('--LAMBDA', type=int, default=5, help = 'Gradient penalty lambda hyperparameter')
 parser.add_argument('--BATCH_SIZE', type=int, default=64, help = 'Batch size')
 parser.add_argument('--CRITIC_ITERS', type=int, default=5, help = 'How many critic iterations per generator iteration')
-parser.add_argument('--ITERS', type=int, default=200000, help = 'How many generator iterations to train for')
+parser.add_argument('--ITERS', type=int, default=300000, help = 'How many generator iterations to train for')
 parser.add_argument('--OUTPUT_DIM', type = int, default = 3072, help = 'Number of pixels in CIFAR10 (3*32*32)')
 parser.add_argument('--IS_CAL_ROUND', type = int, default = 1000, help = 'calculate the Inception score per IS_CAL_ROUND of epoch')
 parser.add_argument('--IMAGE_SAVE_ROUND', type = int, default = 1000, help = 'save the generated images per IS_CAL_ROUND of epoch')
 parser.add_argument('--BATCH_SIZE_IS', type = int, default = 64, help = 'BATCH_SIZE for inception score calculation')
 parser.add_argument('--GROUP_NUM', type = int, default = 16, help = 'Number of groups in group Normalization')
-parser.add_argument('--RESNET',type = bool, default = False, help = 'Whether use ResNet Discriminator and Generator')
+parser.add_argument('--RESNET',type = bool, default = True, help = 'Whether use ResNet Discriminator and Generator')
 parser.add_argument('--NORMALIZATION', type = str, default = 'none',  choices = ['layernorm', 'none', 'groupnorm'],help = 'Type of Normalization')
+parser.add_argument('--SAVE_PATH', type = str, default = './tmp/cifar10/')
+parser.add_argument('--group_num_by_layer', type = str, default = '111111')
+
+group_num_by_layer = [[16, 16], [8,8], [4,4]]
 
 args = parser.parse_args()
+group_num_by_layer_str = args.group_num_by_layer
+group_num_by_layer[0][0] = int(group_num_by_layer_str[0])
+group_num_by_layer[0][1] = int(group_num_by_layer_str[1])
+group_num_by_layer[1][0] = int(group_num_by_layer_str[2])
+group_num_by_layer[1][1] = int(group_num_by_layer_str[3])
+group_num_by_layer[2][0] = int(group_num_by_layer_str[4])
+group_num_by_layer[2][1] = int(group_num_by_layer_str[5])
 
+SAVE_PATH = args.SAVE_PATH
 MODE = args.MODE # Valid options are dcgan, wgan, or wgan-gp
 DIM = args.DIM # This overfits substantially; you're probably better off with 64
 LAMBDA = args.LAMBDA # Gradient penalty lambda hyperparameter
@@ -75,7 +87,7 @@ else:
     netG = Generator(DIM)
 
 if(RESNET == True):
-    netD = Discriminator_with_ResNet(128)
+    netD = Discriminator_with_ResNet(128, group_num_by_layer)
 elif NORMALIZATION == 'groupnorm':
     netD = Discriminator_with_group_norm(DIM, GROUP_NUM)
 elif NORMALIZATION == 'layernorm':
