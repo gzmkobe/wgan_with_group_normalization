@@ -17,6 +17,9 @@ def save_images(X, save_path):
         rows -= 1
 
     nh, nw = rows, n_samples/rows
+    
+
+    nw = int(nw)
 
     if X.ndim == 2:
         X = np.reshape(X, (X.shape[0], int(np.sqrt(X.shape[1])), int(np.sqrt(X.shape[1]))))
@@ -26,13 +29,17 @@ def save_images(X, save_path):
         X = X.transpose(0,2,3,1)
         h, w = X[0].shape[:2]
         img = np.zeros((h*nh, w*nw, 3))
+
     elif X.ndim == 3:
         h, w = X[0].shape[:2]
         img = np.zeros((h*nh, w*nw))
 
+    
     for n, x in enumerate(X):
-        j = n/nw
+        
+        j = int(n/nw)
         i = n%nw
+        
         img[j*h:j*h+h, i*w:i*w+w] = x
 
     imsave(save_path, img)
