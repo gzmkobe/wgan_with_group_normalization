@@ -1,6 +1,6 @@
 # wgan-GP_with_group_normalization
 
-The objective of the project is to combine Group Normalization with WGAN-GP (Wasserstein Generative Adversarial Network with Gradient Penalty) to achieve better performance on image generation. 
+The objective of the project is to combine Group Normalization with WGAN-GP (Wasserstein Generative Adversarial Network with Gradient Penalty) to achieve better performance on image generation. For more reading, please click *[Report](https://github.com/gzmkobe/wgan_with_group_normalization/blob/master/Final_Report.pdf)
 
 
 ## Background
